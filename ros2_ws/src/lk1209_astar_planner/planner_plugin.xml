@@ -1,0 +1,7 @@
+<library path="lk1209_astar_planner">
+  <class name="lk1209_astar_planner/FourNeighborAStar"
+         type="lk1209_astar_planner::FourNeighborAStar"
+         base_class_type="nav2_core::GlobalPlanner">
+    <description>Four-neighbor A* with Manhattan heuristic and costmap inflation costs.</description>
+  </class>
+</library>

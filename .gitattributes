@@ -1,0 +1,6 @@
+* text=auto eol=lf
+*.pgm binary
+*.png binary
+*.jpg binary
+*.stl binary
+simulation/vendor/** -text

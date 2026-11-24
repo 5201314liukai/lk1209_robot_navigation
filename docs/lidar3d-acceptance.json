@@ -1,0 +1,275 @@
+{
+  "date": "2026-11-21",
+  "environment": "Jetson Orin Nano, Gazebo Harmonic, TurtleBot3 House, single LK1209",
+  "nav_profile": "smac_rpp",
+  "laser": {
+    "rows": 16,
+    "columns": 360,
+    "elevations_deg": [
+      -20,
+      10
+    ],
+    "scan_ring": 10
+  },
+  "frequencies_hz": {
+    "raw": {
+      "frames": 19,
+      "simulation_hz": 10.0,
+      "wall_hz": 1.48
+    },
+    "obstacles": {
+      "frames": 19,
+      "simulation_hz": 10.0,
+      "wall_hz": 1.479
+    },
+    "scan": {
+      "frames": 19,
+      "simulation_hz": 10.0,
+      "wall_hz": 1.478
+    }
+  },
+  "stationary": {
+    "metric": "Fixture hits per frame for raw, obstacles, and scan. Grid reports lethal cells in fixture region.",
+    "phases": {
+      "clear_before": {
+        "raw": [
+          0,
+          0,
+          0
+        ],
+        "obstacles": [
+          0,
+          0,
+          0
+        ],
+        "scan": [
+          0,
+          0,
+          0
+        ],
+        "grid": [
+          0,
+          0
+        ]
+      },
+      "low_block": {
+        "raw": [
+          64,
+          64,
+          64
+        ],
+        "obstacles": [
+          50,
+          50,
+          50
+        ],
+        "scan": [
+          0,
+          0,
+          0
+        ],
+        "grid": [
+          10,
+          10
+        ]
+      },
+      "clear_after_low_block": {
+        "raw": [
+          0,
+          0,
+          0
+        ],
+        "obstacles": [
+          0,
+          0,
+          0
+        ],
+        "scan": [
+          0,
+          0,
+          0
+        ],
+        "grid": [
+          0,
+          0
+        ]
+      },
+      "low_bar": {
+        "raw": [
+          64,
+          64,
+          64
+        ],
+        "obstacles": [
+          58,
+          58,
+          58
+        ],
+        "scan": [
+          0,
+          0,
+          0
+        ],
+        "grid": [
+          10,
+          10
+        ]
+      },
+      "clear_after_low_bar": {
+        "raw": [
+          0,
+          0,
+          0
+        ],
+        "obstacles": [
+          0,
+          0,
+          0
+        ],
+        "scan": [
+          0,
+          0,
+          0
+        ],
+        "grid": [
+          0,
+          0
+        ]
+      },
+      "raised_bar": {
+        "raw": [
+          64,
+          64,
+          64
+        ],
+        "obstacles": [
+          0,
+          0,
+          0
+        ],
+        "scan": [
+          0,
+          0,
+          0
+        ],
+        "grid": [
+          0,
+          0
+        ]
+      },
+      "clear_after_raised_bar": {
+        "raw": [
+          0,
+          0,
+          0
+        ],
+        "obstacles": [
+          0,
+          0,
+          0
+        ],
+        "scan": [
+          0,
+          0,
+          0
+        ],
+        "grid": [
+          0,
+          0
+        ]
+      }
+    }
+  },
+  "ground_projection_replay": {
+    "floor_returns": 1145,
+    "uncorrected_z_range_mm": [
+      -19.5,
+      18.97
+    ],
+    "corrected_max_abs_z_mm": 0.107
+  },
+  "navigation": {
+    "passed": true,
+    "low_bar": {
+      "passed": true,
+      "goal_map_x_m": 2.2,
+      "bottom_m": 0.115,
+      "top_m": 0.16,
+      "min_planar_gap_lower_bound_m": 0.1450315089120983,
+      "bar_center_y_m": 0.45,
+      "action_status": 4,
+      "world_crossing_y_m": [
+        0.9986638671107042
+      ],
+      "world_crossing_directions": [
+        1
+      ],
+      "samples": 637,
+      "goal_world_error_m": 0.1929585611649211,
+      "actual_final_world_xy_m": [
+        0.007310057727692294,
+        0.4398219611942549
+      ]
+    },
+    "raised_bar": {
+      "passed": true,
+      "goal_map_x_m": 0.0,
+      "bottom_m": 0.285,
+      "top_m": 0.335,
+      "min_planar_gap_lower_bound_m": -0.20538008100929012,
+      "bar_center_y_m": 0.45,
+      "action_status": 4,
+      "world_crossing_y_m": [
+        0.5639296940355014
+      ],
+      "world_crossing_directions": [
+        -1
+      ],
+      "samples": 1039,
+      "goal_world_error_m": 0.17899192909550687,
+      "actual_final_world_xy_m": [
+        -1.8262817832606726,
+        0.493128782202133
+      ]
+    },
+    "low_block": {
+      "passed": true,
+      "goal_map_x_m": 2.2,
+      "bottom_m": 0.0,
+      "top_m": 0.09,
+      "min_planar_gap_lower_bound_m": 0.0968368606421823,
+      "bar_center_y_m": 0.45,
+      "action_status": 4,
+      "world_crossing_y_m": [
+        0.9100123408461458
+      ],
+      "world_crossing_directions": [
+        1
+      ],
+      "samples": 356,
+      "goal_world_error_m": 0.21106601125161278,
+      "actual_final_world_xy_m": [
+        -0.0005596102925655107,
+        0.5157624803741473
+      ]
+    },
+    "return_home": {
+      "passed": true,
+      "goal_map_x_m": 0.0,
+      "action_status": 4,
+      "world_crossing_y_m": [
+        0.3921184201335124
+      ],
+      "world_crossing_directions": [
+        -1
+      ],
+      "samples": 1100,
+      "goal_world_error_m": 0.19533754017059654,
+      "actual_final_world_xy_m": [
+        -1.8059981143675115,
+        0.42719598783243934
+      ]
+    }
+  },
+  "geometry": "World pose from the Gazebo model. The low-obstacle gap is a conservative horizontal separation at sampled poses. Negative planar separation under the raised bar indicates horizontal overlap."
+}

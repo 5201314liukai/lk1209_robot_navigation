@@ -1,0 +1,253 @@
+{
+  "tested_on": "2026-11-20",
+  "environment": "Jetson Orin Nano / Gazebo Harmonic / TurtleBot3 House",
+  "clock": "simulation seconds",
+  "source_directory": "simulation/logs/door-cart-20261120-1807",
+  "configuration": {
+    "robot1/GridBased.plugin": "nav2_smac_planner/SmacPlanner2D",
+    "robot1/FollowPath.plugin": "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController",
+    "robot1/obstacle_layer.observation_sources": "scan features",
+    "robot2/GridBased.plugin": "nav2_smac_planner/SmacPlanner2D",
+    "robot2/FollowPath.plugin": "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController",
+    "robot2/obstacle_layer.observation_sources": "scan features"
+  },
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "order_and_fixture_completed": true,
+      "motion_metrics": true,
+      "recorded_through_order_end": true,
+      "yielded_while_blocked": true,
+      "sustained_progress_after_clear": true,
+      "sensor_phase_coverage": true,
+      "held_cart_scan_detected": true,
+      "held_cart_costmap_marked": true,
+      "held_odometry_recorded": true
+    },
+    "failed_checks": [],
+    "errors": []
+  },
+  "orders": {
+    "passed": true,
+    "queue_start": 639.444,
+    "queue_end": 686.223,
+    "door_crossings": [
+      1,
+      -1
+    ],
+    "home_error_m": 0.15702538961656654,
+    "order_end": 722.434,
+    "orders": [
+      {
+        "robot": "robot1",
+        "stages": [
+          "QUEUED",
+          "OUTBOUND",
+          "DWELL",
+          "RETURNING"
+        ],
+        "status": 4,
+        "message": "Arrived home"
+      },
+      {
+        "robot": "robot2",
+        "stages": [
+          "QUEUED"
+        ],
+        "status": 5,
+        "message": "Delivery canceled"
+      }
+    ]
+  },
+  "physical_measurements": {
+    "samples": 4195,
+    "recorded_sim_s": [
+      639.44,
+      722.446
+    ],
+    "events_sim_s": {
+      "ready": 639.44,
+      "trigger": 651.523,
+      "brake": 652.549,
+      "occupy": 652.704,
+      "depart": 655.814,
+      "lane_clear": 656.798,
+      "park": 656.92
+    },
+    "max_sample_interval_s": 0.023000000000024556,
+    "min_sampled_envelope_gap_m": 0.10781536102785952,
+    "closest_sim_s": 668.243,
+    "overlap_samples": 0,
+    "issues": [],
+    "recording_covers_order_end": true,
+    "queue_sim_s": [
+      639.444,
+      686.223
+    ],
+    "queued_robot2_max_displacement_m": 0.0,
+    "min_crossing_envelope_gap_m": 0.24840072420255713,
+    "closest_crossing_sim_s": 656.123,
+    "hold_sim_s": 3.1100000000000136,
+    "hold_sample_span_s": 3.1100000000000136,
+    "hold_max_displacement_m": 0.0,
+    "hold_center_world_xy_m": [
+      1.72,
+      0.39700000000001334
+    ],
+    "measured_cart_southbound_speeds_mps": [
+      0.3199999999999687,
+      0.3199999999999945
+    ],
+    "lane_clear_cart_north_edge_m": 0.2027600000000243,
+    "lane_south_edge_m": 0.203,
+    "clear_margin_m": 0.0002399999999757041,
+    "robot1_median_speed_last_second_before_trigger_mps": 0.08745513385650176,
+    "robot1_min_speed_over_300ms_during_encounter_mps": 6.801395275805095e-09,
+    "robot1_longest_low_speed_sim_s": 2.4,
+    "low_speed_threshold_mps": 0.025,
+    "robot1_trigger_xy_m": [
+      0.971405314702974,
+      0.44570013632428845
+    ],
+    "robot1_clear_xy_m": [
+      1.0829185964698536,
+      0.41874288728832704
+    ],
+    "robot1_median_speed_first_second_after_clear_mps": 0.027999816741940547,
+    "sustained_forward_at_clear": false,
+    "reached_cart_x_during_blockage": false,
+    "resume_after_clear_sim_s": 10.25,
+    "resume_definition": "eastward speed > 0.04 m/s in each of five consecutive 0.10 s intervals",
+    "metrics_passed": true
+  },
+  "held_sensor_evidence": {
+    "scan": {
+      "raw_frames": 31,
+      "matched_pose_frames": 31,
+      "frames_with_cart_hits": 31,
+      "peak_hits": 29,
+      "receive_age_sim_s": {
+        "samples": 31,
+        "min": 0.002,
+        "median": 0.003,
+        "max": 0.007
+      },
+      "frames_with_geometric_rays": 31
+    },
+    "grid": {
+      "raw_frames": 7,
+      "matched_pose_frames": 7,
+      "frames_with_cart_hits": 7,
+      "peak_hits": 12,
+      "receive_age_sim_s": {
+        "samples": 7,
+        "min": 0.0,
+        "median": 0.0,
+        "max": 0.0
+      }
+    },
+    "odom_mps": {
+      "samples": 155,
+      "min": -0.0,
+      "median": 0.0,
+      "max": 0.028
+    }
+  },
+  "former_cart_area_first_3s_after_clear": {
+    "grid_samples": 5,
+    "samples_with_lethal_cells": 0,
+    "max_lethal_cell_count": 0
+  },
+  "after_clear_velocity_bins_mps": [
+    {
+      "start_s": 0,
+      "end_s": 2,
+      "cmd_vel_nav": 0.08,
+      "cmd_vel": 0.08,
+      "sim/cmd_vel_checked": 0.08,
+      "sim/cmd_vel_safe": 0.028,
+      "odom": 0.028
+    },
+    {
+      "start_s": 2,
+      "end_s": 4,
+      "cmd_vel_nav": 0.0878,
+      "cmd_vel": 0.0878,
+      "sim/cmd_vel_checked": 0.08,
+      "sim/cmd_vel_safe": 0.028,
+      "odom": 0.028
+    },
+    {
+      "start_s": 4,
+      "end_s": 6,
+      "cmd_vel_nav": 0.0894,
+      "cmd_vel": 0.0894,
+      "sim/cmd_vel_checked": 0.0,
+      "sim/cmd_vel_safe": 0.0,
+      "odom": 0.0
+    },
+    {
+      "start_s": 6,
+      "end_s": 8,
+      "cmd_vel_nav": 0.0894,
+      "cmd_vel": 0.0894,
+      "sim/cmd_vel_checked": 0.0,
+      "sim/cmd_vel_safe": 0.028,
+      "odom": 0.0
+    },
+    {
+      "start_s": 8,
+      "end_s": 10,
+      "cmd_vel_nav": 0.1077,
+      "cmd_vel": 0.1077,
+      "sim/cmd_vel_checked": 0.08,
+      "sim/cmd_vel_safe": 0.028,
+      "odom": 0.028
+    },
+    {
+      "start_s": 10,
+      "end_s": 12,
+      "cmd_vel_nav": 0.1464,
+      "cmd_vel": 0.1464,
+      "sim/cmd_vel_checked": 0.1464,
+      "sim/cmd_vel_safe": 0.051,
+      "odom": 0.0511
+    },
+    {
+      "start_s": 12,
+      "end_s": 14,
+      "cmd_vel_nav": 0.2253,
+      "cmd_vel": 0.2253,
+      "sim/cmd_vel_checked": 0.2253,
+      "sim/cmd_vel_safe": 0.2253,
+      "odom": 0.2253
+    },
+    {
+      "start_s": 14,
+      "end_s": 16,
+      "cmd_vel_nav": 0.25,
+      "cmd_vel": 0.25,
+      "sim/cmd_vel_checked": 0.25,
+      "sim/cmd_vel_safe": 0.25,
+      "odom": 0.25
+    },
+    {
+      "start_s": 16,
+      "end_s": 18,
+      "cmd_vel_nav": 0.2443,
+      "cmd_vel": 0.2443,
+      "sim/cmd_vel_checked": 0.2443,
+      "sim/cmd_vel_safe": 0.2443,
+      "odom": 0.2443
+    },
+    {
+      "start_s": 18,
+      "end_s": 20,
+      "cmd_vel_nav": 0.1548,
+      "cmd_vel": 0.1548,
+      "sim/cmd_vel_checked": 0.1548,
+      "sim/cmd_vel_safe": 0.159,
+      "odom": 0.159
+    }
+  ]
+}

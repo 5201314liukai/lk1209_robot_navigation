@@ -1,0 +1,28 @@
+# Navigation2 Humble plugin names. The loader copies speed, acceleration and
+# inflation limits from the selected robot's existing navigation configuration.
+GridBased:
+  plugin: nav2_smac_planner/SmacPlanner2D
+  downsample_costmap: false
+  tolerance: 0.20
+  allow_unknown: true
+  max_planning_time: 1.0
+FollowPath:
+  plugin: nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController
+  use_collision_detection: true
+  max_allowed_time_to_collision_up_to_carrot: 1.0
+  use_velocity_scaled_lookahead_dist: true
+  min_lookahead_dist: 0.30
+  max_lookahead_dist: 0.60
+  lookahead_time: 1.5
+  use_regulated_linear_velocity_scaling: true
+  regulated_linear_scaling_min_speed: 0.08
+  use_cost_regulated_linear_velocity_scaling: true
+  use_rotate_to_heading: true
+  allow_reversing: false
+features:
+  data_type: PointCloud2
+  marking: true
+  clearing: false
+  observation_persistence: 0.0
+  min_obstacle_height: 0.0
+  max_obstacle_height: 1.5

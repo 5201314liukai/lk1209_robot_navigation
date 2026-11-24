@@ -1,0 +1,163 @@
+{
+  "date": "2026-11-20",
+  "environment": "Jetson Orin Nano, ROS 2 Humble, Gazebo Harmonic, TurtleBot3 House",
+  "classic": {
+    "case": "fleet",
+    "source": "Gazebo Harmonic model poses and live ROS 2 actions",
+    "door_crossings": [
+      1,
+      -1
+    ],
+    "east_error_m": 0.10544812117540296,
+    "home_error_m": 0.14460769730762216,
+    "queued_max_displacement_m": 0.0,
+    "max_apparent_nav_goal_overlap_wall_s": 0.0,
+    "orders": [
+      {
+        "robot": "robot1",
+        "stages": [
+          "QUEUED",
+          "OUTBOUND",
+          "DWELL",
+          "RETURNING"
+        ],
+        "status": 4
+      },
+      {
+        "robot": "robot2",
+        "stages": [
+          "QUEUED",
+          "OUTBOUND"
+        ],
+        "status": 5
+      }
+    ],
+    "home_recovery": "SUCCEEDED",
+    "robot_navigation_tests": "Summary: 6 tests, 0 errors, 0 failures, 0 skipped",
+    "world": "turtlebot3_house"
+  },
+  "smac_rpp": {
+    "case": "fleet",
+    "source": "Gazebo Harmonic model poses and live ROS 2 actions",
+    "door_crossings": [
+      1,
+      -1
+    ],
+    "east_error_m": 0.14934531590612138,
+    "home_error_m": 0.18317033134623406,
+    "first_order_wall_s": 444.12,
+    "first_order_sim_s": 76.77,
+    "east_arrival_sim_s": 26.03,
+    "static_obstacle": {
+      "min_sampled_clearance_lower_bound_m": 0.11235,
+      "pose_samples": 1543,
+      "direct_line_y_m": 0.438,
+      "box_passages": {
+        "outbound": {
+          "world_y_m": 0.8384,
+          "offset_from_direct_line_m": 0.4004
+        },
+        "returning": {
+          "world_y_m": 0.8614,
+          "offset_from_direct_line_m": 0.4234
+        }
+      },
+      "trajectory_csv": "simulation/logs/fleet/lk1209_acceptance_box_d5d58828323f4314826c373943d274f9_poses.csv",
+      "live_plugins": {
+        "planner_server": "nav2_smac_planner/SmacPlanner2D",
+        "controller_server": "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
+      },
+      "box_world_xy": [
+        -0.9,
+        0.37
+      ],
+      "baseline_peak_lethal_cells": {
+        "local": 0,
+        "global": 0
+      },
+      "box_lethal_cells": {
+        "local": [
+          7,
+          7
+        ],
+        "global": [
+          10,
+          10
+        ]
+      }
+    },
+    "queued_max_displacement_m": 0.0,
+    "max_apparent_nav_goal_overlap_wall_s": 0.0,
+    "orders": [
+      {
+        "robot": "robot1",
+        "stages": [
+          "QUEUED",
+          "OUTBOUND",
+          "DWELL",
+          "RETURNING"
+        ],
+        "status": 4
+      },
+      {
+        "robot": "robot2",
+        "stages": [
+          "QUEUED",
+          "OUTBOUND"
+        ],
+        "status": 5
+      }
+    ]
+  },
+  "lidar": {
+    "passed": true,
+    "tolerance_m": 0.08,
+    "publishers": {
+      "robot1": "/robot1/lidar_detector",
+      "robot2": "/robot2/lidar_detector"
+    },
+    "robots": {
+      "robot1": {
+        "matched_stamps": 12,
+        "segments": 73,
+        "max_endpoint_error_m": 0.0216,
+        "sim_receive_age_s": {
+          "min": 0.002,
+          "median": 0.004,
+          "max": 0.008
+        }
+      },
+      "robot2": {
+        "matched_stamps": 12,
+        "segments": 132,
+        "max_endpoint_error_m": 0.0796,
+        "sim_receive_age_s": {
+          "min": 0.003,
+          "median": 0.0065,
+          "max": 0.01
+        }
+      }
+    }
+  },
+  "final_world_xy_m": {
+    "robot1": [
+      -1.8461,
+      0.5491
+    ],
+    "robot2": [
+      3.1258,
+      2.5042
+    ]
+  },
+  "final_nav2_status_codes": {
+    "robot2": [
+      5,
+      4
+    ],
+    "robot1": [
+      4,
+      4
+    ]
+  },
+  "recovery_after_cancel": "SUCCEEDED"
+}

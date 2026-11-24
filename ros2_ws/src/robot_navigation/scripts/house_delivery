@@ -1,0 +1,178 @@
+#!/usr/bin/python3
+"""Execute one TurtleBot3 House delivery using Nav2 on the LK1209 simulator."""
+import argparse
+import fcntl
+import math
+import os
+from pathlib import Path
+import signal
+import sys
+import tempfile
+import time
+import uuid
+
+import rclpy
+from action_msgs.msg import GoalStatus
+from action_msgs.srv import CancelGoal
+from nav2_msgs.action import NavigateToPose
+from rclpy.action import ActionClient
+from rclpy.node import Node
+from rclpy.parameter import Parameter
+from rclpy.signals import SignalHandlerOptions
+from unique_identifier_msgs.msg import UUID
+
+
+class DeliveryError(Exception):
+    pass
+
+
+class DeliveryCanceled(Exception):
+    pass
+
+
+class Delivery(Node):
+    def __init__(self):
+        super().__init__('house_delivery', parameter_overrides=[
+            Parameter('use_sim_time', value=True)])
+        self.nav = ActionClient(self, NavigateToPose, 'navigate_to_pose')
+        self.cancel_client = self.create_client(
+            CancelGoal, 'navigate_to_pose/_action/cancel_goal')
+        self.stop_requested = False
+        self.last_feedback = 0.0
+
+    def wait(self, future, seconds, interruptible=True):
+        deadline = time.monotonic() + seconds
+        while not future.done():
+            if interruptible and self.stop_requested:
+                raise DeliveryCanceled()
+            left = deadline - time.monotonic()
+            if left <= 0:
+                raise TimeoutError()
+            rclpy.spin_once(self, timeout_sec=min(0.2, left))
+        return future.result()
+
+    def feedback(self, message):
+        now = time.monotonic()
+        if now - self.last_feedback >= 10:
+            feedback = message.feedback
+            self.get_logger().info(
+                f'FEEDBACK distance_remaining={feedback.distance_remaining:.2f} m '
+                f'recoveries={feedback.number_of_recoveries}')
+            self.last_feedback = now
+
+    def cancel_pending(self, goal_id):
+        # Acceptance reply was lost. Scope cancellation to our known UUID.
+        request = CancelGoal.Request()
+        request.goal_info.goal_id = goal_id
+        try:
+            reply = self.wait(self.cancel_client.call_async(request), 8, False)
+        except TimeoutError:
+            raise DeliveryError('Nav2 did not confirm cancellation; check robot state.')
+        raise DeliveryError(f'Missing goal acknowledgement; cancel response={reply.return_code}. '
+                            'Final motion state unconfirmed.')
+
+    def go(self, stage, x, y, timeout):
+        if self.stop_requested:
+            raise DeliveryCanceled()
+        goal = NavigateToPose.Goal()
+        goal.pose.header.frame_id = 'map'
+        goal.pose.header.stamp = self.get_clock().now().to_msg()
+        goal.pose.pose.position.x = x
+        goal.pose.pose.position.y = y
+        goal.pose.pose.orientation.w = 1.0
+        goal_id = UUID(uuid=list(uuid.uuid4().bytes))
+        self.get_logger().info(f'{stage} target=({x:.2f}, {y:.2f})')
+        pending = self.nav.send_goal_async(goal, feedback_callback=self.feedback,
+                                           goal_uuid=goal_id)
+        try:
+            handle = self.wait(pending, 12, interruptible=False)
+        except TimeoutError:
+            self.cancel_pending(goal_id)
+        if not handle.accepted:
+            raise DeliveryError(f'{stage} rejected by Nav2')
+        completed = handle.get_result_async()
+        try:
+            status = self.wait(completed, timeout).status
+        except (TimeoutError, DeliveryCanceled) as reason:
+            self.get_logger().info(f'{stage} requesting cancellation')
+            request = handle.cancel_goal_async()
+            try:
+                self.wait(request, 8, False)
+                status = self.wait(completed, 12, False).status
+            except TimeoutError:
+                raise DeliveryError(f'{stage} stop unconfirmed; check Nav2 and robot state.')
+            self.get_logger().info(f'{stage} terminal Nav2 status={status}')
+            if isinstance(reason, DeliveryCanceled):
+                raise
+            raise DeliveryError(f'{stage} exceeded wall-time limit ({timeout:g} s)')
+        if status == GoalStatus.STATUS_CANCELED:
+            raise DeliveryCanceled()
+        if status != GoalStatus.STATUS_SUCCEEDED:
+            raise DeliveryError(f'{stage} failed with Nav2 status={status}')
+        self.get_logger().info(f'{stage} SUCCEEDED')
+
+    def run(self, dwell, timeout):
+        deadline = time.monotonic() + 30
+        while not self.nav.server_is_ready() or self.get_clock().now().nanoseconds == 0:
+            if self.stop_requested:
+                raise DeliveryCanceled()
+            if time.monotonic() >= deadline:
+                raise DeliveryError('House navigation or simulation clock unavailable.')
+            rclpy.spin_once(self, timeout_sec=0.2)
+        self.go('PICKUP_A', 0.0, 0.0, timeout)
+        self.go('DELIVER_B', 5.15, 0.75, timeout)
+        self.get_logger().info(f'DWELL_B {dwell:g} wall seconds')
+        until = time.monotonic() + dwell
+        while time.monotonic() < until:
+            if self.stop_requested:
+                raise DeliveryCanceled()
+            rclpy.spin_once(self, timeout_sec=min(0.2, max(0, until-time.monotonic())))
+        self.go('RETURN_A', 0.0, 0.0, timeout)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--dwell', type=float, default=3.0, help='seconds at B (wall clock)')
+    parser.add_argument('--leg-timeout', type=float, default=480.0,
+                        help='maximum wall seconds per accepted navigation goal')
+    args = parser.parse_args()
+    if not math.isfinite(args.leg_timeout) or args.leg_timeout <= 0:
+        parser.error('--leg-timeout must be finite and positive')
+    if not math.isfinite(args.dwell) or args.dwell < 0:
+        parser.error('--dwell must be finite and nonnegative')
+    lock_root = Path(f'/run/user/{os.getuid()}')
+    if not lock_root.is_dir():
+        lock_root = Path(tempfile.gettempdir())
+    lock_path = lock_root / f'lk1209-delivery-{os.getuid()}-{os.getenv("ROS_DOMAIN_ID", "0")}.lock'
+    with lock_path.open('a') as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            print('A house delivery is already running.', file=sys.stderr)
+            return 1
+        rclpy.init(signal_handler_options=SignalHandlerOptions.NO)
+        node = Delivery()
+
+        def stop(signum, frame):
+            node.stop_requested = True
+
+        signal.signal(signal.SIGINT, stop)
+        signal.signal(signal.SIGTERM, stop)
+        try:
+            node.run(args.dwell, args.leg_timeout)
+            node.get_logger().info('DELIVERY SUCCEEDED')
+            return 0
+        except DeliveryCanceled:
+            node.get_logger().info('DELIVERY CANCELED')
+            return 2
+        except DeliveryError as error:
+            node.get_logger().error(f'DELIVERY FAILED: {error}')
+            return 1
+        finally:
+            node.destroy_node()
+            rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    sys.exit(main())
+

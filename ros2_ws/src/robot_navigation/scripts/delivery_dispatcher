@@ -1,0 +1,322 @@
+#!/usr/bin/python3
+"""Dispatch deliveries over the single shared house route."""
+import fcntl
+import math
+import os
+from pathlib import Path
+import re
+import signal
+import tempfile
+import time
+import uuid
+
+import rclpy
+from action_msgs.msg import GoalStatus
+from action_msgs.srv import CancelGoal
+from lk1209_interfaces.action import DeliveryTask
+from nav2_msgs.action import NavigateToPose
+from rclpy.action import ActionClient, ActionServer, CancelResponse, GoalResponse
+from rclpy.clock import Clock, ClockType
+from rclpy.node import Node
+from rclpy.signals import SignalHandlerOptions
+from rclpy.task import Future
+from unique_identifier_msgs.msg import UUID
+
+from delivery_routing import SharedRoute
+
+
+TERMINAL = {GoalStatus.STATUS_SUCCEEDED, GoalStatus.STATUS_CANCELED, GoalStatus.STATUS_ABORTED}
+
+
+def process_lock(name):
+    directory = Path(f'/run/user/{os.getuid()}')
+    if not directory.is_dir():
+        directory = Path(tempfile.gettempdir())
+    stream = (directory / f'{name}-{os.getuid()}-{os.getenv("ROS_DOMAIN_ID", "0")}.lock').open('a')
+    try:
+        fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        stream.close()
+        raise
+    return stream
+
+
+class Stopped(Exception):
+    pass
+
+
+class Job:
+    def __init__(self, handle, ticket):
+        self.handle = handle
+        self.ticket = ticket
+        self.stage = 'QUEUED'
+        self.distance = -1.0
+        self.next_feedback = 0.0
+        self.at_home = False
+        self.motion_pending = False
+        self.goal_id = None
+        self.result_future = None
+        self.stop_request = None
+
+    def report(self, stage):
+        if stage != self.stage:
+            self.stage = stage
+            self.distance = -1.0
+        self.handle.publish_feedback(DeliveryTask.Feedback(
+            robot_id=self.ticket.robot, stage=self.stage, distance_remaining=self.distance))
+        self.next_feedback = time.monotonic() + 0.75
+
+
+class Dispatcher(Node):
+    def __init__(self):
+        super().__init__('delivery_dispatcher')
+        param = lambda name, default: self.declare_parameter(name, default).value
+        robots = param('robot_ids', ['lk1209'])
+        stations = param('stations', ['east_room'])
+        for ids in (robots, stations):
+            if not ids or len(set(ids)) != len(ids) or not all(
+                    re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', name) for name in ids):
+                raise ValueError('Robot and station IDs must be nonempty, unique ROS names')
+        if 'home' in stations:
+            raise ValueError('home is reserved for a return-to-base request')
+        self.homes = {}
+        self.destinations = {}
+        self.nav = {}
+        self.cancel = {}
+        self.result_query = {}
+        endpoints = set()
+        for name in robots:
+            default_action = '/navigate_to_pose' if len(robots) == 1 else f'/{name}/navigate_to_pose'
+            action = param(f'robots.{name}.nav_action', default_action)
+            if not action.startswith('/') or action in endpoints:
+                raise ValueError('Each robot requires a separate absolute Nav2 action name')
+            endpoints.add(action)
+            self.nav[name] = ActionClient(self, NavigateToPose, action)
+            self.cancel[name] = self.create_client(CancelGoal, action + '/_action/cancel_goal')
+            self.result_query[name] = self.create_client(
+                NavigateToPose.Impl.GetResultService, action + '/_action/get_result')
+            self.homes[name] = param(f'robots.{name}.home', [0.0, 0.0, 0.0])
+        for name in stations:
+            self.destinations[name] = param(f'destinations.{name}', [5.15, 0.75, 0.0])
+        for pose in [*self.homes.values(), *self.destinations.values()]:
+            if len(pose) != 3 or not all(map(math.isfinite, pose)):
+                raise ValueError('Poses must contain finite x, y and yaw values')
+        if len(robots) > 1 and len({tuple(p[:2]) for p in self.homes.values()}) != len(robots):
+            raise ValueError('Each robot requires a separate home position')
+        self.dwell = param('dwell_seconds', 3.0)
+        self.timeout = param('leg_timeout_seconds', 480.0)
+        if not (math.isfinite(self.dwell) and self.dwell >= 0 and
+                math.isfinite(self.timeout) and self.timeout > 0):
+            raise ValueError('Invalid dwell or navigation timeout')
+        self.route = SharedRoute(robots)
+        self.uses_root_action = '/navigate_to_pose' in endpoints
+        self.legacy_lock = None
+        self.jobs = []
+        self.stopping = False
+        self.waiters = []
+        self.timer = self.create_timer(0.1, self.wake, clock=Clock(clock_type=ClockType.STEADY_TIME))
+        self.server = ActionServer(
+            self, DeliveryTask, '/delivery_task', self.execute,
+            goal_callback=self.admit, cancel_callback=lambda _: CancelResponse.ACCEPT)
+
+    def admit(self, request):
+        if (self.stopping or len(self.jobs) >= 32 or
+                (request.robot_id and request.robot_id not in self.nav)):
+            return GoalResponse.REJECT
+        if request.station == 'home':
+            return GoalResponse.ACCEPT if request.robot_id else GoalResponse.REJECT
+        if request.station in self.destinations:
+            return GoalResponse.ACCEPT
+        return GoalResponse.REJECT
+
+    def wake(self):
+        current, self.waiters = self.waiters, []
+        for pulse in current:
+            pulse.set_result(None)
+        for job in self.jobs:
+            if time.monotonic() >= job.next_feedback:
+                job.report(job.stage)
+
+    async def tick(self):
+        future = Future(executor=self.executor)
+        self.waiters.append(future)
+        await future
+
+    def check_canceled(self, job):
+        if job.handle.is_cancel_requested or self.stopping:
+            raise Stopped('Delivery canceled' if job.handle.is_cancel_requested else 'Dispatcher stopping')
+
+    async def wait(self, future, seconds, job=None):
+        deadline = time.monotonic() + seconds
+        while not future.done():
+            if job:
+                self.check_canceled(job)
+            if time.monotonic() >= deadline:
+                raise TimeoutError('Timed out waiting for Nav2')
+            await self.tick()
+        return future.result()
+
+    def release(self, job):
+        self.route.finish(job.ticket, at_home=job.at_home)
+        if job.at_home and self.legacy_lock:
+            self.legacy_lock.close()
+            self.legacy_lock = None
+
+    def request_cancel(self, job):
+        request = CancelGoal.Request()
+        request.goal_info.goal_id = job.goal_id
+        job.stop_request = self.cancel[job.ticket.robot].call_async(request)
+
+    async def verify_late_stop(self, job):
+        # An unknown UUID, cancellation ACK, or disappeared server cannot prove standstill.
+        # Query and cancel only the original UUID; keep the route fenced until terminal.
+        robot = job.ticket.robot
+        request = NavigateToPose.Impl.GetResultService.Request()
+        request.goal_id = job.goal_id
+        query = job.result_future
+        last = 0.0
+        while rclpy.ok():
+            if query is not None and query.done():
+                try:
+                    if query.result().status in TERMINAL:
+                        self.release(job)
+                        self.get_logger().warn(f'{robot} confirmed stopped; submit home recovery')
+                        return
+                except Exception as exc:
+                    self.get_logger().warn(f'{robot}: terminal status unavailable: {exc}')
+                query = None
+            if time.monotonic() - last > 3.0:
+                if self.result_query[robot].service_is_ready() and query is None:
+                    query = self.result_query[robot].call_async(request)
+                if self.cancel[robot].service_is_ready() and (
+                        job.stop_request is None or job.stop_request.done()):
+                    self.request_cancel(job)
+                last = time.monotonic()
+            await self.tick()
+
+    async def go(self, job, stage, pose):
+        self.check_canceled(job)
+        job.report(stage)
+        robot = job.ticket.robot
+        nav = self.nav[robot]
+        limit = time.monotonic() + 30.0
+        while not nav.server_is_ready() or self.get_clock().now().nanoseconds == 0:
+            self.check_canceled(job)
+            if time.monotonic() >= limit:
+                raise RuntimeError(f'{robot}: navigation or clock unavailable')
+            await self.tick()
+        goal = NavigateToPose.Goal()
+        goal.pose.header.frame_id = 'map'
+        goal.pose.header.stamp = self.get_clock().now().to_msg()
+        x, y, yaw = pose
+        goal.pose.pose.position.x, goal.pose.pose.position.y = x, y
+        goal.pose.pose.orientation.w = math.cos(yaw / 2.0)
+        goal.pose.pose.orientation.z = math.sin(yaw / 2.0)
+        job.goal_id = UUID(uuid=list(uuid.uuid4().bytes))
+        job.result_future = None
+        job.stop_request = None
+        def feedback(message):
+            if job.stage == stage and job.goal_id == message.goal_id:
+                job.distance = message.feedback.distance_remaining
+        pending = nav.send_goal_async(goal, feedback_callback=feedback, goal_uuid=job.goal_id)
+        was_home = job.at_home
+        job.motion_pending, job.at_home = True, False
+        try:
+            handle = await self.wait(pending, 12.0)
+            if not handle.accepted:
+                job.motion_pending, job.at_home = False, was_home
+                raise RuntimeError(f'{robot}: Nav2 rejected {stage}')
+            job.result_future = handle.get_result_async()
+            response = await self.wait(job.result_future, self.timeout, job)
+        except (TimeoutError, Stopped):
+            self.request_cancel(job)
+            if job.result_future is not None:
+                try:
+                    status = (await self.wait(job.result_future, 12.0)).status
+                    job.motion_pending = status not in TERMINAL
+                    job.at_home = stage == 'RETURNING' and status == GoalStatus.STATUS_SUCCEEDED
+                except TimeoutError:
+                    pass
+            raise
+        job.motion_pending = response.status not in TERMINAL
+        if response.status != GoalStatus.STATUS_SUCCEEDED:
+            raise RuntimeError(f'{robot}: {stage} ended with Nav2 status {response.status}')
+        job.at_home = stage == 'RETURNING'
+
+    async def execute(self, handle):
+        req = handle.request
+        ready = [name for name, nav in self.nav.items() if nav.server_is_ready()]
+        ticket = self.route.enqueue(req.robot_id, req.station, ready)
+        job = Job(handle, ticket)
+        self.jobs.append(job)
+        job.report('QUEUED')
+        success = False
+        try:
+            queue_deadline = time.monotonic() + max(60.0, 2*self.timeout + self.dwell + 60.0)
+            self.check_canceled(job)
+            while not self.route.claim(ticket):
+                if self.route.stranded and not (
+                        ticket.station == 'home' and ticket.robot == self.route.stranded):
+                    raise RuntimeError(f'Route held; send home for {self.route.stranded}')
+                if time.monotonic() >= queue_deadline:
+                    raise TimeoutError('Timed out waiting for the shared route')
+                await self.tick()
+                self.check_canceled(job)
+            job.at_home = self.route.stranded is None
+            if self.uses_root_action and self.legacy_lock is None:
+                try:
+                    self.legacy_lock = process_lock('lk1209-delivery')
+                except BlockingIOError as exc:
+                    raise RuntimeError('Legacy house_delivery owns navigation') from exc
+            if ticket.station != 'home':
+                await self.go(job, 'OUTBOUND', self.destinations[ticket.station])
+                job.report('DWELL')
+                deadline = time.monotonic() + self.dwell
+                while time.monotonic() < deadline:
+                    self.check_canceled(job)
+                    await self.tick()
+            await self.go(job, 'RETURNING', self.homes[ticket.robot])
+            self.check_canceled(job)
+            success = True
+            message = 'Arrived home'
+        except Exception as exc:
+            message = str(exc) or type(exc).__name__
+        finally:
+            if self.route.active is not ticket:
+                self.route.drop(ticket)
+            elif job.motion_pending:
+                message += '; Nav2 stop unconfirmed, shared route locked'
+                self.executor.create_task(self.verify_late_stop, job)
+            else:
+                self.release(job)
+                if not job.at_home:
+                    message += f'; route reserved for {ticket.robot}: send home'
+            self.jobs.remove(job)
+        if success:
+            handle.succeed()
+        elif handle.is_cancel_requested and not job.motion_pending:
+            handle.canceled()
+        else:
+            handle.abort()
+        self.get_logger().info(f'{ticket.robot} / {ticket.station}: {message}')
+        return DeliveryTask.Result(success=success, robot_id=ticket.robot, message=message)
+
+
+def main():
+    with process_lock('lk1209-dispatcher'):
+        rclpy.init(signal_handler_options=SignalHandlerOptions.NO)
+        node = Dispatcher()
+        def stop(*_):
+            node.stopping = True
+        signal.signal(signal.SIGINT, stop)
+        signal.signal(signal.SIGTERM, stop)
+        try:
+            while rclpy.ok() and (not node.stopping or node.jobs):
+                rclpy.spin_once(node, timeout_sec=0.2)
+        finally:
+            node.destroy_node()
+            rclpy.try_shutdown()
+
+
+if __name__ == '__main__':
+    main()

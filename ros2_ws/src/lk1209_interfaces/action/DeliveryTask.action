@@ -1,0 +1,13 @@
+# Named map destination. "home" requests return to the named robot's own dock.
+string station
+# Leave empty for automatic allocation.
+string robot_id
+---
+bool success
+string robot_id
+string message
+---
+string robot_id
+string stage
+# Nav2 distance in meters when available.
+float32 distance_remaining

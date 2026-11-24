@@ -1,0 +1,10 @@
+delivery_dispatcher:
+  ros__parameters:
+    robot_ids: [robot1, robot2]
+    robots.robot1.nav_action: /robot1/navigate_to_pose
+    robots.robot1.home: [0.0, 0.0, 0.0]
+    robots.robot2.nav_action: /robot2/navigate_to_pose
+    robots.robot2.home: [5.10, 2.25, 0.0]
+    stations: [east_room, west_room]
+    destinations.east_room: [5.15, 0.75, 0.0]
+    destinations.west_room: [0.85, 0.75, 0.0]

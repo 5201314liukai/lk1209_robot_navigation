@@ -1,0 +1,220 @@
+{
+  "date": "2026-11-21",
+  "environment": "Jetson Orin Nano / Gazebo Harmonic / TurtleBot3 House",
+  "clock": "simulation seconds",
+  "run_directory": "simulation/logs/reentry-1795224850337/trial-1",
+  "configuration": {
+    "robot1/FollowPath.plugin": "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController",
+    "robot1/GridBased.plugin": "nav2_smac_planner/SmacPlanner2D",
+    "robot1/stop_length": 0.42,
+    "robot1/stop_half_width": 0.2,
+    "robot1/yield_seconds": 4.0,
+    "robot1/creep_speed": 0.08,
+    "robot1/ForwardSlow.slowdown_ratio": 0.35,
+    "robot2/FollowPath.plugin": "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController",
+    "robot2/GridBased.plugin": "nav2_smac_planner/SmacPlanner2D",
+    "robot2/stop_length": 0.42,
+    "robot2/stop_half_width": 0.2,
+    "robot2/yield_seconds": 4.0,
+    "robot2/creep_speed": 0.08,
+    "robot2/ForwardSlow.slowdown_ratio": 0.35
+  },
+  "acceptance": {
+    "scenario": "reentry",
+    "passed": true,
+    "checks": {
+      "order_and_fixture_completed": true,
+      "motion_metrics": true,
+      "recorded_through_order_end": true,
+      "yielded_while_blocked": true,
+      "sustained_progress_after_clear": true,
+      "sensor_phase_coverage": true,
+      "held_cart_scan_detected": true,
+      "held_cart_costmap_marked": true,
+      "held_odometry_recorded": true,
+      "second_encounter": true
+    },
+    "failed_checks": [],
+    "errors": []
+  },
+  "reentry": {
+    "checks": {
+      "recorded_reentry_sequence": true,
+      "continuous_pose_record": true,
+      "cart_reached_lane_center": true,
+      "cart_cleared_north_edge": true,
+      "northbound_cart_speed": true,
+      "positive_reentry_clearance": true,
+      "robot_yielded_before_crossing": true,
+      "cart_returned_after_real_restart": true,
+      "guard_clear_at_reentry_trigger": true,
+      "returning_cart_observed_in_directional_guard": true,
+      "laser_coverage_to_guard_entry": true,
+      "second_zero_base_command": true,
+      "second_sustained_odom_stop": true,
+      "brake_associated_with_reentering_cart": true,
+      "eastward_trip_continued_after_final_clear": true
+    },
+    "cart_south_edge_at_final_clear_m": 0.60468,
+    "actual_northbound_speeds_mps": [
+      0.3199999999999885,
+      0.3199999999999717
+    ],
+    "min_reentry_envelope_gap_m": 0.20872553923410028,
+    "closest_reentry_sim_s": 449.067,
+    "initial_stop_interval_sim_s": [
+      439.769,
+      440.069
+    ],
+    "verified_restart_interval_sim_s": [
+      443.289,
+      443.489
+    ],
+    "reentry_initial_forward_speed_mps": 0.02799999999822944,
+    "directional_guard": {
+      "length_m": 0.42,
+      "half_width_m": 0.2,
+      "pretrigger_scan": [
+        443.5,
+        0,
+        0
+      ],
+      "entry_scan": [
+        444.1,
+        3,
+        3
+      ],
+      "frame_fields": [
+        "sim_s",
+        "total_in_guard",
+        "matching_cart_in_guard"
+      ]
+    },
+    "brake_association": {
+      "observation": "cart in guard at zero command",
+      "associated_guard_entry_sim_s": 444.1
+    },
+    "reentry_trigger_sim_s": 443.511,
+    "final_clear_sim_s": 448.907,
+    "stop_command_sim_s": 444.13100000000003,
+    "odometry_stop_interval_sim_s": [
+      444.149,
+      444.449
+    ],
+    "stop_threshold_mps": 0.005,
+    "stop_yaw_threshold_radps": 0.035,
+    "stop_confirmation_s": 0.3,
+    "max_abs_yaw_rate_during_stop_confirmation_radps": 1.4500872158369392e-12,
+    "zero_command_after_cart_reversal_s": 0.6200000000000045,
+    "zero_command_relative_to_guard_entry_s": 0.03100000000000591,
+    "odometry_stop_after_cart_reversal_s": 0.6379999999999768,
+    "odometry_stop_relative_to_guard_entry_s": 0.04899999999997817,
+    "odometry_stop_relative_to_entry": "stopped at or after first in-zone scan",
+    "post_clear_forward_interval_sim_s": [
+      448.909,
+      449.109
+    ],
+    "issues": [],
+    "passed": true
+  },
+  "order": {
+    "scope": "delivery order and fixture completion",
+    "passed": true,
+    "scenario": "reentry",
+    "queue_start": 426.01,
+    "queue_end": 468.0,
+    "door_crossings": [
+      1,
+      -1
+    ],
+    "home_error_m": 0.17491511290178782,
+    "order_end": 488.634,
+    "orders": [
+      {
+        "robot": "robot1",
+        "stages": [
+          "QUEUED",
+          "OUTBOUND",
+          "DWELL",
+          "RETURNING"
+        ],
+        "status": 4,
+        "message": "Arrived home"
+      },
+      {
+        "robot": "robot2",
+        "stages": [
+          "QUEUED"
+        ],
+        "status": 5,
+        "message": "Delivery canceled"
+      }
+    ]
+  },
+  "motion": {
+    "samples": 3090,
+    "recorded_sim_s": [
+      426.007,
+      488.666
+    ],
+    "events_sim_s": {
+      "ready": 426.007,
+      "trigger": 437.974,
+      "brake": 438.993,
+      "occupy": 439.151,
+      "depart": 442.266,
+      "lane_clear": 443.271,
+      "park": 443.373,
+      "reentry_trigger": 443.511,
+      "reentry_occupy": 444.798,
+      "reentry_depart": 447.906,
+      "reentry_clear": 448.907,
+      "reentry_park": 449.067
+    },
+    "max_sample_interval_s": 0.023000000000024556,
+    "min_sampled_envelope_gap_m": 0.14660952311603415,
+    "closest_sim_s": 469.367,
+    "overlap_samples": 0,
+    "issues": [],
+    "recording_covers_order_end": true,
+    "queue_sim_s": [
+      426.01,
+      468.0
+    ],
+    "queued_robot2_max_displacement_m": 0.0,
+    "min_crossing_envelope_gap_m": 0.2700771967694507,
+    "closest_crossing_sim_s": 439.769,
+    "hold_sim_s": 3.115000000000009,
+    "hold_sample_span_s": 3.115000000000009,
+    "hold_max_displacement_m": 0.0,
+    "hold_center_world_xy_m": [
+      1.72,
+      0.39924000000001325
+    ],
+    "measured_cart_southbound_speeds_mps": [
+      0.31999999999999357,
+      0.3199999999999777
+    ],
+    "lane_clear_cart_north_edge_m": 0.1982800000000243,
+    "lane_south_edge_m": 0.203,
+    "clear_margin_m": 0.004719999999975716,
+    "robot1_median_speed_last_second_before_trigger_mps": 0.25005471121326456,
+    "robot1_min_speed_over_300ms_during_encounter_mps": 0.0,
+    "robot1_longest_low_speed_sim_s": 3.9,
+    "low_speed_threshold_mps": 0.025,
+    "robot1_trigger_xy_m": [
+      0.9753459435815224,
+      0.4067079978912266
+    ],
+    "robot1_clear_xy_m": [
+      1.088293644377615,
+      0.3908878681168791
+    ],
+    "robot1_median_speed_first_second_after_clear_mps": 0.028764436867889976,
+    "sustained_forward_at_clear": false,
+    "reached_cart_x_during_blockage": false,
+    "resume_after_clear_sim_s": 5.350000000000023,
+    "resume_definition": "eastward speed > 0.04 m/s in each of five consecutive 0.10 s intervals",
+    "metrics_passed": true
+  }
+}

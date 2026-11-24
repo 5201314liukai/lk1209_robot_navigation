@@ -1,0 +1,5 @@
+<library path="visibility_voxel_layer">
+  <class type="obstacle_detection::VisibilityVoxelLayer" base_class_type="nav2_costmap_2d::Layer">
+    <description>Nav2 voxel layer with continuous three-dimensional clearing rays.</description>
+  </class>
+</library>

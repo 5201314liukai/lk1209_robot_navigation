@@ -1,0 +1,147 @@
+<?xml version="1.0"?>
+
+<sdf version="1.9">
+
+  <world name="robot_world">
+
+    <!-- ================================= -->
+    <!-- 1. 物理引擎 -->
+    <!-- ================================= -->
+
+    <plugin
+      filename="gz-sim-physics-system"
+      name="gz::sim::systems::Physics"/>
+
+    <!-- 用户命令系统 -->
+    <plugin
+      filename="gz-sim-user-commands-system"
+      name="gz::sim::systems::UserCommands"/>
+
+    <!-- 场景广播系统 -->
+    <plugin
+      filename="gz-sim-scene-broadcaster-system"
+      name="gz::sim::systems::SceneBroadcaster"/>
+
+    <!-- ================================= -->
+    <!-- 2. 激光雷达传感器系统 -->
+    <!-- ================================= -->
+
+    <plugin
+      filename="gz-sim-sensors-system"
+      name="gz::sim::systems::Sensors">
+
+      <render_engine>ogre2</render_engine>
+
+    </plugin>
+
+    <!-- ================================= -->
+    <!-- 3. 重力 -->
+    <!-- ================================= -->
+
+    <gravity>0 0 -9.8</gravity>
+
+    <!-- ================================= -->
+    <!-- 4. 地面模型 -->
+    <!-- ================================= -->
+
+    <model name="ground_plane">
+
+      <static>true</static>
+
+      <link name="ground_link">
+
+        <collision name="ground_collision">
+
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+
+        </collision>
+
+        <visual name="ground_visual">
+
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+
+          <material>
+            <ambient>0.7 0.7 0.7 1</ambient>
+            <diffuse>0.7 0.7 0.7 1</diffuse>
+          </material>
+
+        </visual>
+
+      </link>
+
+    </model>
+
+    <!-- ================================= -->
+    <!-- 5. 太阳光源 -->
+    <!-- ================================= -->
+
+    <light name="sun" type="directional">
+
+      <pose>0 0 10 0 0 0</pose>
+
+      <cast_shadows>true</cast_shadows>
+
+      <direction>-0.5 0.5 -1</direction>
+
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+
+      <specular>0.2 0.2 0.2 1</specular>
+
+    </light>
+    
+    <!-- ================================= -->
+    <!-- 测试障碍物：机器人前方的立方体 -->
+    <!-- ================================= -->
+
+    <model name="test_obstacle">
+
+      <!-- 障碍物固定在世界中 -->
+      <static>true</static>
+
+      <!-- 障碍物位置：X=2米，Y=0米，Z=0.5米 -->
+      <pose>2 0 0.5 0 0 0</pose>
+
+      <link name="obstacle_link">
+
+        <!-- 碰撞模型 -->
+        <collision name="obstacle_collision">
+          <geometry>
+            <box>
+              <size>0.3 0.3 1.0</size>
+            </box>
+          </geometry>
+        </collision>
+
+        <!-- 可视化模型 -->
+        <visual name="obstacle_visual">
+          <geometry>
+            <box>
+              <size>0.3 0.3 1.0</size>
+            </box>
+          </geometry>
+
+          <material>
+            <ambient>1 0 0 1</ambient>
+            <diffuse>1 0 0 1</diffuse>
+          </material>
+        </visual>
+
+      </link>
+
+    </model>
+
+
+  </world>
+
+</sdf>
+
